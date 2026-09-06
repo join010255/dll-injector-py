@@ -11,7 +11,7 @@ init()
 
 
 class DllInjection:
-    def __init__(self, process_name=None, process_id=None, dll_path: str) -> None:
+    def __init__(self, dll_path: str, process_name=None, process_id=None) -> None:
         if process_name:
             pid: int = self.get_pid(process_name)
             if pid:
@@ -29,25 +29,25 @@ class DllInjection:
     
     def inject(self, process_id: int, dll_path: str) -> None:
         process_acess = win32con.PROCESS_ALL_ACCESS
-        hProcess = win32api.OpenProcess(process_acess, False, 1612)
+        hProcess = win32api.OpenProcess(process_acess, False, process_id)
         if not hProcess:
             raise Exception("[-] Failed to create process")
             
-        print(f"[+] Process created with PID: {1612}")
-        dll_path_bytes: bytes = self.dll_path.encode("mbcs")+b'/x00'
+        print(f"[+] Process created with PID: {process_id}")
+        dll_path_bytes: bytes = dll_path.encode("mbcs")+b'/x00'
 
         dll_path_size: int = len(dll_path_bytes)
 
-        address = win32process.VirtualAllocEx(
+        virtual_addess = win32process.VirtualAllocEx(
             hProcess,
             0,  # NULL = 0
             dll_path_size,
             win32con.MEM_COMMIT | win32con.MEM_RESERVE,
             win32con.PAGE_READWRITE
         )
-        if not address:
+        if not virtual_addess:
             raise Exception("[-] Failed to allocate memory")
-        writeProcess_memory: int = win32process.WriteProcessMemory(hProcess, address, dll_path_bytes)
+        writeProcess_memory: int = win32process.WriteProcessMemory(hProcess, virtual_addess, dll_path_bytes)
 
         if not writeProcess_memory:
             raise Exception("[-] Failed to allocate memory")
@@ -62,7 +62,7 @@ class DllInjection:
             None,
             0,
             loadlibrary_address,
-            address,
+            virtual_addess,
             0
         )
         if not hThread:
@@ -81,16 +81,16 @@ if __name__ == "__main__":
              |    `   \  |_|  |__ |   |   |  \   |  \  ___/\  \___|  | (  <_> )  | \/
             /_______  /____/____/ |___|___|  /\__|  |\___  >\___  >__|  \____/|__|   
                     \/                     \/\______|    \/     \/                   
-        """+Style.NORMAL)
-        print("-"*121)
-        dll_path: str = input(Fore.YELLOW+"[+] Enter Dll Path: "+Style.NORMAL).strip()
+        """+Style.RESET_ALL)
+        print(f'\t{"-"*80}\n')
+        dll_path: str = input(Fore.YELLOW+"[+] Enter Dll Path: "+Style.RESET_ALL).strip()
         if not os.path.exists(dll_path):
-            print(Fore.RED+"[-] Dll Path Is Not Exists"+Style.NORMAL)
+            print(Fore.RED+"[-] Dll Path Is Not Exists"+Style.RESET_ALL)
             sys.exit(0)
             
-        process_id: str = input(Fore.YELLOW+"[+]  Process Id (scape): "+Style.NORMAL).strip()
+        process_id: str = input(Fore.YELLOW+"[+]  Process Id (scape): "+Style.RESET_ALL).strip()
         if not process_id:
-            process_name: str = input(Fore.YELLOW+"[+] Process Name : "+Style.NORMAL)
+            process_name: str = input(Fore.YELLOW+"[+] Process Name : "+Style.RESET_ALL)
             DllInjection(process_name=process_name, dll_path=dll_path)
             
         else:
